@@ -8,26 +8,15 @@ This package contains the code to run the LoCoBot WX200 both in simulation and r
 
 The package is organized into the following directories:
 
-- `behavior_tree/`: Contains behavior tree XML files for navigation.
 - `config/`: Contains configuration files for various components.
 - `include/`: Contains header files for the package.
 - `launch/`: Contains launch files for bringing up required nodes.
-- `maps/`: Provides example maps to be loaded in Nav2. See launch files for usage.
-- `media/`: Contains media files for Gazebo Classic.
-- `models/`: Contains sdf models used in the package.
-- `rviz/`: Contains RViz configuration files.
 - `src/`: Contains source code files.
-- `urdf/`: Contains URDF files for robot description.
-- `worlds/`: Contains simulation world files for Gazebo Classic.
 
 ## Files and Folders
 
 ### config/
 
-- `camera_calibration\`: Folder containing camera calibration files for the kinect network.
-- `apriltag.yaml`: Configuration file for AprilTag detection.
-- `navigation_mmpi.yaml`: Configuration file for the MPPI navigation controller.
-- `navigation_rpp.yaml`: Configuration file for the RPP navigation controller.
 - `rs_camera.yaml`: Configuration file for the Realsense camera.
 
 ### include/
@@ -37,31 +26,15 @@ The package is organized into the following directories:
 
 ### launch/
 
-- `camera_calibration\calib_master.launch.py`: Launch file for calibrating the camera network.
-- `camera_calibration\k01calib.launch.py`: Launch file to open the camera 'k01' for calibration.
-- `camera_calibration\k02calib.launch.py`: Launch file to open the camera 'k02' for calibration.
-- `camera_calibration\k4a.launch.py`: Kinetic Azure default camera calibration launch file.
 - `arm_to_sleep.launch.py`: Launch file for sending the robot's arm to the sleep position.
-- `demo.launch.py`: Launch file for running the demo program.
-- `include_camera.launch.py`: Launch file for including the camera in the simulation.
-- `include_markers.launch.py`: Launch file for including the AprilTag markers in the simulation.
-- `remote.launch.py`: Launch file for running Rviz2 interface, apriltag detection and kinect connection on a remote machine (not the NUC).
 - `robot.launch.py`: Launch file to bring up the required packages in the NUC of the Locobot.
-- `second_camera.launch.py`: Launch file to include marker detection from a second kinect camera in the camera network.
-- `simulation.launch.py`: Launch file for running the simulation.
-
-
-> **Note:** The `camera_calibration` folder contains launch files for calibrating the camera network using the `camera_calibration` package.
 
 > **Note:** Read the launch file sections for more information on the arguments required for each launch file.
 
 ### src/
 
-- `state_machine/HumanEmulator.cpp`: Implements the `HumanEmulator` class, a ROS 2 node that emulates human behavior for simulation purposes.
 - `state_machine/StateMachine.cpp`: Implements the `StateMachine` class, responsible for controlling the different states of the robot behavior.
-- `state_machine/main.cpp`: Main file for the `StateMachine` class. Implements the main loop for the state machine.
 - `ArmSleepPosition.cpp`: A demo file for the `LocobotControl` class that sends the robot's arm to the sleep position.
-- `Demo.cpp`: A demo file for the `LocobotControl` class that demonstrates moving the base, arm, and gripper to specified positions.
 - `LocobotControl.cpp`: Implements the `LocobotControl` class, responsible for controlling the Locobot arm, gripper, and base.
 
 
@@ -134,7 +107,6 @@ The `StateMachine` class is a ROS 2 node that controls the different states of t
 - `sleep_time`: Time [ms] to sleep between cycles of the state machine (default: `100`).
 - `state_topic`: Topic where the state of the state machine is published (default: `machine_state`).
 - `debug`: Publish the internal state of the machine (default: `true`).
-- `tf_tolerance`: Time tolerance [s] for missing TFs before triggering an error (default: `5.0`).
 
 #### Services
 
@@ -196,87 +168,17 @@ ros2 service call /clear_error_state locobot_control_interfaces/srv/ClearError
 
 ## Launch Files
 
-### simulation.launch.py
-
-This launch file is used to launch a complete simulation of the Locobot using Gazebo Classic.
-
-**Input Arguments:**
-- `nav2_param_file`: The file path to the params YAML file of Nav2. (default: '')
-- `external_urdf_loc`: The file path to the custom URDF file to include in the Interbotix robot. (default: *urdf/locobot_tag.urdf.xacro*)
-- `camera_number`: Number of cameras to be included in the simulation. Can be *1* or *2*. (default: *1*)
-- `spawn_obstacle`: Flag to spawn an obstacle in the simulation. Can be *true* or *false*. (default: *true*)
-- `container`: Name of the container where to load the components. Default is *nav2_container*.
-- `nav_controller`: The Nav2 controller plugin to use. Can be *mppi* or *rpp*. (default: *mppi*)
-
-### second_kinect.launch.py
-
-This launch file is used to launch the apriltag detection node with a second kinect camera in the camera network.
-
-**Input Arguments:**
-- `container`: Name of an existing node container to load launched nodes into. If unset, a new container will be created.
-- `apriltag_config_file`: Full path to the apriltag configuration file to use.
-- `kinect_config_file`: Full path to the kinect configuration file to use.
-- `cam_sn`: Serial number of the camera to be included in the simulation, with 'a' as prefix. (default: *a000191301712*)
-
 ### robot.launch.py
 
-This launch file is used to bring up the required packages in the NUC of the Locobot. If the `nav2_param_file` is not set, the default file for navigation will be selected basing on the `nav_controller` argument.
+This launch file is used to bring up the required packages in the NUC of the Locobot.
 
 **Input Arguments:**
-- `external_urdf_loc`: The file path to the custom URDF file to include in the Interbotix robot. (default: *urdf/locobot_tag.urdf.xacro*)
-- `nav2_param_file`: The file path to the params YAML file. (default: ``)
 - `rs_camera_param`: The file path to the Realsense camera configuration file. (default: *rs_camera.yaml*)
-- `container`: Name of an existing node container to load launched nodes into. If unset, a new container will be created for the apriltag detections.
-- `nav_controller`: The controller plugin to be used in Nav2. Can be *mppi* or *rpp*. (default: *mppi*)
 
-### remote.launch.py
-
-This launch file is used to launch the remote environment with the Azure Kinect camera, the apriltag node and . Not to be used on the NUC but on a remote machine connected to the kinect camera network.
-
-**Input Arguments:**
-- `container`: Name of an existing node container to load launched nodes into. If unset, a new container will be created for the apriltag detections.
-- `apriltag_config_file`: Full path to the apriltag configuration file to use.
-- `kinect_config_file`: Full path to the kinect configuration file to use.
-- `camera_number`: Number of cameras to be included in the simulation. Can be *1* or *2*. (default: *1*)
-- `cam_sn`: Serial number of the camera to be included in the simulation, with 'a' as prefix. (default: *a000181401712*)
-- `cam2_sn`: Serial number of the second camera to be included in the simulation, with 'a' as prefix. (default: *a000191301712*)
-
-### include_markers.launch.py
-
-This launch file is used to include the fiducial marker and camera entities in Gazebo simulation. It incorporates the `include_camera.launch.py` launch file.
-
-**Input Arguments:**
-- `camera_number`: Number of cameras to be included in the simulation. Can be *1* or *2*. (default: *1*)
-- `use_gazebo`: Flag to include the Gazebo Classic simulation. Can be *true* or *false*. (default: *false*)
-- `container`: Name of an existing node container to load launched nodes into. If unset, a new container will be created for the apriltag detections.
-
-### include_camera.launch.py
-
-This launch file is used to include the camera entities in Gazebo simulation.
-
-**Input Arguments:**
-- `camera_number`: Number of cameras to be included in the simulation. Can be *1* or *2*. (default: *1*)
-- `use_gazebo`: Flag to include the Gazebo Classic simulation. Can be *true* or *false*. (default: *false*)
-
-### demo.launch.py
-
-This launch file is used to run a demo program for the Locobot.
-
-**Input Arguments:**
-- None
-
-### arm_to_sleep.launch.py
-
-This launch file is used to send the robot's arm to the sleep position.
-
-**Input Arguments:**
-- None
-
-## Warning
 
 ### Topic Remapping
 
-To use the `LocobotControl` class, it is necessary to remap the topics as shown in the [demo_no_lidar.launch.py](launch/demo_no_lidar.launch.py) file. This is because Interbotix publishes the robot descriptions on specific topics.
+To use the `LocobotControl` class, it is necessary to remap the topics as shown in the [robot.launch.py](launch/robot.launch.py) file. This is because Interbotix publishes the robot descriptions on specific topics.
 
 ### Stop Interface
 The stop interface for MoveIt2 in the state machine has been commented out in the code because it exhibits unexpected behavior when used with the real robot. An issue should be opened in the Interbotix package repository to address this problem.
