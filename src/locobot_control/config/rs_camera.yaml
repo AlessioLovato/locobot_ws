@@ -18,7 +18,7 @@ $(var robot_name):
         ordered_pc: false
         enable: true
       rgb_camera:
-        color_profile: '680,480,30'
+        color_profile: '640,480,30'
       spatial_filter:
         enable: false
       temporal_filter:

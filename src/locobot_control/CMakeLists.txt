@@ -14,6 +14,7 @@ find_package(nav2_util REQUIRED)
 find_package(slam_toolbox REQUIRED)
 find_package(gazebo_ros REQUIRED)
 find_package(apriltag_ros REQUIRED)
+find_package(apriltag_calibration REQUIRED)
 find_package(image_proc REQUIRED)
 find_package(spatio_temporal_voxel_layer REQUIRED)
 

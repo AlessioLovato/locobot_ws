@@ -17,7 +17,7 @@
                           <ComputePathToPose goal="{goal}"
                                              planner_id="GridBased"
                                              path="{path}"/>
-                          <TruncatePath distance="0.0"
+                          <TruncatePath distance="0.5"
                                         input_path="{path}"
                                         output_path="{truncated_path}"/>
                           <IsPathValid path="{truncated_path}"/>

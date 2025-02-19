@@ -1,14 +1,14 @@
 [submodule "src/interbotix_ros_rovers"]
 	path = src/interbotix_ros_rovers
-	url = https://github.com/Alessio-Lovato-Unipd/interbotix_ros_rovers.git
+	url = https://github.com/AlessioLovato/interbotix_ros_rovers.git
 	branch = humble
 [submodule "src/interbotix_ros_core"]
 	path = src/interbotix_ros_core
-	url = https://github.com/Alessio-Lovato-Unipd/interbotix_ros_core.git
+	url = https://github.com/AlessioLovato/interbotix_ros_core.git
 	branch = humble
 [submodule "src/interbotix_ros_toolboxes"]
 	path = src/interbotix_ros_toolboxes
-	url = https://github.com/Alessio-Lovato-Unipd/interbotix_ros_toolboxes.git
+	url = https://github.com/AlessioLovato/interbotix_ros_toolboxes.git
 	branch = humble
 [submodule "src/kobuki_ros"]
 	path = src/kobuki_ros
