@@ -35,15 +35,15 @@ To use the joystick -only ps3 at the moment - for the navigation, the workspace 
         [XArms instructions](https://docs.trossenrobotics.com/interbotix_xsarms_docs/ros_interface/ros2/software_setup.html) -  [Xarms rules file](https://raw.githubusercontent.com/Interbotix/interbotix_ros_manipulators/main/interbotix_ros_xsarms/install/rpi4/xsarm_rpi4_install.sh) -
         [Kobuki instructions](https://kobuki.readthedocs.io/en/stable/) - [Kobuki rules file](https://github.com/kobuki-base/kobuki_core/blob/release/1.4.x/60-kobuki.rules)
 
-        ```bash
-        # X-Arms rules
-        sudo cp src/interbotix_ros_core/interbotix_ros_xseries/interbotix_xs_sdk/99-interbotix-udev.rules /etc/udev/rules.d/
-        sudo udevadm control --reload-rules && sudo udevadm trigger
-        # Kobuki base rules
-        sudo cp 60-kobuki.rules /etc/udev/rules.d
-        sudo service udev reload
-        sudo service udev restart
-        ```
+    ```bash
+    # X-Arms rules
+    sudo cp src/interbotix_ros_core/interbotix_ros_xseries/interbotix_xs_sdk/99-interbotix-udev.rules /etc/udev/rules.d/
+    sudo udevadm control --reload-rules && sudo udevadm trigger
+    # Kobuki base rules
+    sudo cp 60-kobuki.rules /etc/udev/rules.d
+    sudo service udev reload
+    sudo service udev restart
+    ```
 
 ## Connection
 It is possbile to connect to the locobot via WiFi or Ethernet.
