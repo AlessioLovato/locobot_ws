@@ -26,7 +26,7 @@ echo "Building packages"
 source /opt/ros/humble/setup.bash
 colcon build --packages-select locobot_control_interfaces
 source install/setup.bash
-colcon build --packages-skip azure_kinect_ros_driver --parallel-workers 6
+colcon build --parallel-workers 6
 source install/setup.bash
 
 echo "Building completed"

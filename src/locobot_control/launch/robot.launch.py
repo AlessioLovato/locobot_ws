@@ -41,11 +41,13 @@ It loads the following components:
 
 The launch file also remaps the cmd_vel topic published from the 'Controller server' to the diffdrive_controller.
 
+@param robot_name: name of the robot (default: locobot)
+@param base_type: type of the base (default: kobuki)
+@param external_srdf_loc: the file path to the custom semantic description file that you would like to include in the Interbotix robot's semantic description
 @param external_urdf_loc: the file path to the custom URDF file that you would like to include in the Interbotix robot
-@param nav2_param_file: the file path to the params YAML file (default: '')
+@param nav2_params_file: the file path to the params YAML file (default: config/robot_navigation.yaml)
 @param rs_camera_param: the file path to the Realsense camera configuration file (default: config/rs_camera.yaml)
 @param container: name of an existing node container to load launched nodes into. If unset, a new container will be created
-@param nav_controller: The controller plugin to be used in Nav2. Can be 'mmpi' or 'rpp'. (default: 'mmpi')
 """
 
 import os
@@ -64,16 +66,11 @@ from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     TimerAction,
-    GroupAction,
-    OpaqueFunction
+    GroupAction
 )
 from launch.conditions import LaunchConfigurationEquals, LaunchConfigurationNotEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import (
-    LaunchConfiguration,
-    PathJoinSubstitution,
-    PythonExpression
-)
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
 from launch_ros.actions import (
     Node,
@@ -100,10 +97,37 @@ def load_yaml(package_name, file_path):
         return None
 
 
-"""
-@brief Function that launches the nodes
-"""
-def launch_description(context, *args, **kwargs):
+
+def generate_launch_description():
+
+    external_urdf_loc_launch_arg = DeclareLaunchArgument(
+            name='external_urdf_loc',
+            default_value=PathJoinSubstitution([FindPackageShare('simulation'), 'urdf', 'locobot_tag.urdf.xacro']),
+            description='the file path to the custom URDF file that you would like to include in the Interbotix robot.',
+    )
+    
+    arg_container = DeclareLaunchArgument(
+        name='container',
+        default_value='',
+        description=(
+            'Name of an existing node container to load launched nodes into. '
+            'If unset, a new container will be created.'
+        )
+    )
+
+    rs_camera_param_launch_arg = DeclareLaunchArgument(
+        name='rs_camera_param',
+        default_value=PathJoinSubstitution([FindPackageShare('simulation'), 'config', 'rs_camera.yaml']),
+        description='the file path to the Realsense camera configuration file.'
+    )
+
+    controller_arg = DeclareLaunchArgument(
+        name='controller',
+        default_value='ps3',
+        choices=['ps3', 'key'],
+        description="Choose between ps3 controller (ps3) or keyboard (key) to control the movements. Default 'ps3'."
+    )
+
 
 ############################################################################################################
 ##############################################  MOVEIT2  ###################################################
@@ -221,7 +245,8 @@ def launch_description(context, *args, **kwargs):
                         'robot_description',
                     'joint_state_topic':
                         'locobot/joint_states',
-                }
+                },
+                'use_sim_time': True,
             },
             robot_description_semantic,
             kinematics_config,
@@ -235,147 +260,6 @@ def launch_description(context, *args, **kwargs):
         remappings=remappings,
         output={'both': 'screen'},
     )
-
-############################################################################################################
-############################################  NAVIGATION2  #################################################
-############################################################################################################
-
-    # Launch configurations
-    nav2_param_file = LaunchConfiguration('nav2_param_file').perform(context)
-    nav_controller = LaunchConfiguration('nav_controller').perform(context)
-
-    # Paths to default parameter files
-    default_params_mppi = PathJoinSubstitution([
-        FindPackageShare('locobot_control'), 'config', 'navigation_mppi.yaml'
-    ])
-    default_params_rpp = PathJoinSubstitution([
-        FindPackageShare('locobot_control'), 'config', 'navigation_rpp.yaml'
-    ])
-
-    # Check if param file exists
-    if nav2_param_file != '' and not os.path.exists(nav2_param_file):
-        raise RuntimeError(f"nav2_param_file '{nav2_param_file}' does not exist")
-
-    # Conditional substitution to select the default parameter file based on nav_controller
-    default_params_file = PythonExpression([
-        '"', default_params_mppi, '" if "', nav_controller, '" == \'mppi\' else "', default_params_rpp, '"'
-    ])
-
-    # Conditional substitution to select the parameter file
-    params_file = PythonExpression([
-        '"', nav2_param_file, '" if "', nav2_param_file, '" != \'\' else "', default_params_file, '"'
-    ])
-
-    # Configure parameters using RewrittenYaml
-    configured_params = ParameterFile(
-        RewrittenYaml(
-            source_file=params_file,
-            param_rewrites={'autostart': 'True'},
-            convert_types=True,
-        ),
-        allow_substs=True,
-    )
-    # Map fully qualified names to relative ones so the node's namespace can be prepended.
-    # In case of the transforms (tf), currently, there doesn't seem to be a better alternative
-    # https://github.com/ros/geometry2/issues/32
-    # https://github.com/ros/robot_state_publisher/pull/30
-    # TODO(orduno) Substitute with `PushNodeRemapping`
-    #              https://github.com/ros2/launch_ros/issues/56
-    remappings = [('/tf', 'tf'), ('/tf_static', 'tf_static')]
-
-    lifecycle_nodes = [
-        'controller_server',
-        'planner_server',
-        'behavior_server',
-        'bt_navigator',
-        'velocity_smoother',
-        'map_server',
-    ]
-
-    composable_nodes = [
-        ComposableNode(
-            package='nav2_controller',
-            plugin='nav2_controller::ControllerServer',
-            name='controller_server',
-            parameters=[configured_params],
-            remappings=remappings + [('cmd_vel', 'cmd_vel_nav')],
-            extra_arguments=[{'use_intra_process_comms': True}]
-        ),
-        ComposableNode(
-            package='nav2_planner',
-            plugin='nav2_planner::PlannerServer',
-            name='planner_server',
-            parameters=[configured_params],
-            remappings=remappings,
-            extra_arguments=[{'use_intra_process_comms': True}]
-        ),
-        ComposableNode(
-            package='nav2_behaviors',
-            plugin='behavior_server::BehaviorServer',
-            name='behavior_server',
-            parameters=[configured_params],
-            remappings=remappings,
-            extra_arguments=[{'use_intra_process_comms': False}] # intraprocess communication allowed only with volatile durability
-        ),
-        ComposableNode(
-            package='nav2_bt_navigator',
-            plugin='nav2_bt_navigator::BtNavigator',
-            name='bt_navigator',
-            parameters=[configured_params],
-            remappings=remappings,
-            extra_arguments=[{'use_intra_process_comms': False}] # intraprocess communication allowed only with volatile durability
-        ),
-        ComposableNode(
-            package='nav2_velocity_smoother',
-            plugin='nav2_velocity_smoother::VelocitySmoother',
-            name='velocity_smoother',
-            parameters=[configured_params],
-            remappings=remappings,
-            extra_arguments=[{'use_intra_process_comms': True}]
-        ),
-        ComposableNode(
-            package='nav2_map_server',
-            plugin='nav2_map_server::MapServer',
-            name='map_server',
-            parameters=[configured_params],
-            remappings=remappings,
-            extra_arguments=[{'use_intra_process_comms': False}] # intraprocess communication allowed only with volatile durability
-        ),
-        ComposableNode(
-            package='nav2_lifecycle_manager',
-            plugin='nav2_lifecycle_manager::LifecycleManager',
-            name='lifecycle_manager_navigation',
-            parameters=[
-                {'autostart': True, 'node_names': lifecycle_nodes}
-            ]
-        )
-    ]
-
-    nav2_launch = GroupAction(
-        actions=[
-            # Remap the cmd_vel topic published from 'Controller server' to the diffdrive_controller
-            SetRemap(src='/cmd_vel', dst='/locobot/commands/velocity'),
-            
-                # If an existing container is not provided, start a container and load nodes into it
-            ComposableNodeContainer(
-                condition=LaunchConfigurationEquals('container', ''),
-                name='nav2_container',
-                namespace='',
-                package='rclcpp_components',
-                executable='component_container',
-                composable_node_descriptions=composable_nodes,
-                output='screen',
-                parameters=[configured_params],
-            ),
-
-            # If an existing container name is provided, load composable nodes into it
-            # This will block until a container with the provided name is available and nodes are loaded
-            LoadComposableNodes(
-                condition=LaunchConfigurationNotEquals('container', ''),
-                composable_node_descriptions=composable_nodes,
-                target_container=LaunchConfiguration('container'),
-            ),
-        ])
 
 ############################################################################################################
 ##########################################  LOCOBOT CONTROL  ###############################################
@@ -393,10 +277,10 @@ def launch_description(context, *args, **kwargs):
                     'use_base': 'true',
                     'hardware_type': 'actual',
                     'robot_model': 'locobot_wx200',
-                    'robot_name': 'locobot',
                     'base_type': 'kobuki',
-                    'external_srdf_loc': '',
-                    'use_camera': 'false', #Camera is loaded externally
+                    'robot_name': 'locobot',
+                    'external_srdf_loc': '',''
+                    'use_camera': 'false',
                 }.items()
     )
 
@@ -419,15 +303,32 @@ def launch_description(context, *args, **kwargs):
         parameters=[realsense_params],
         extra_arguments=[{'use_intra_process_comms': True}],
     )
+
+    state_machine = Node(
+        package='simulation',
+        executable='state_machine_action_server',
+        output='screen',
+       # namespace='locobot',
+        # Remapping is mandatory due to the namespace
+        remappings=[
+            ('robot_description', '/locobot/robot_description'),
+            ('robot_description_semantic', '/locobot/robot_description_semantic')
+        ]
+    )
+
   
     # Create the container for components
-    container = GroupAction(
+    rs_camera = GroupAction(
         actions=[
             # Container name not provided, using navigation container
-            LoadComposableNodes(
+            ComposableNodeContainer(
                 condition=LaunchConfigurationEquals('container', ''),
+                name='rs_container',
+                namespace='',
+                package='rclcpp_components',
+                executable='component_container',
                 composable_node_descriptions=[realsense_node],
-                target_container='nav2_container',
+                output='screen',
             ),
             # Container name provided, using provided container
             LoadComposableNodes(
@@ -438,20 +339,24 @@ def launch_description(context, *args, **kwargs):
         ]
     )
 
-############################################################################################################
-############################################  STATE MACHINE   ##############################################
-############################################################################################################
 
-    state_machine = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory('locobot_control'), 'launch', 'state_machine.launch.py')
-        ),
-        launch_arguments={
-            'debug': 'true',
-            'use_sim_time': 'false',
-        }.items(),
-        condition=LaunchConfigurationEquals('state_machine', 'true')
-    )
+   
+    # Include launch file from gesture_recognition package
+    gesture_recognition_launch = IncludeLaunchDescription(
+                    PythonLaunchDescriptionSource(
+                        PathJoinSubstitution(
+                            [FindPackageShare('gesture_recognition'), 'launch', 'gesture_recognizer.launch.py']),
+                    )
+            )
+
+    joystick_launch = IncludeLaunchDescription(
+                    PythonLaunchDescriptionSource(
+                        PathJoinSubstitution(
+                            [FindPackageShare('joystick'), 'launch', 'joystick_PS3.launch.py.launch.py']),
+                    )
+            )      
+
+
 
 ############################################################################################################
 ############################################  EVENTS HANDLER  ##############################################
@@ -460,80 +365,26 @@ def launch_description(context, *args, **kwargs):
     # Delayed items to have better control over the order of execution
     delayed_items = TimerAction(
         period=5.0, #Delay in seconds
-        actions=[nav2_launch,
-                container,
+        actions=[rs_camera,
                 move_group_node
         ]
     )
 
-    launch_state_machine = TimerAction(
+    more_delayed_items = TimerAction(
         period=10.0, #Delay in seconds
-        actions=[state_machine]
-    )
-
-    return [
-        # 'use_sim_time' will be set on all nodes following the line above
-        SetParameter(name='use_sim_time', value=False),
-        # Robot launch
-        ros_control_locobot,
-        delayed_items,
-        launch_state_machine
-    ]
-
-
-
-
-def generate_launch_description():
-    
-    # Declare launch arguments
-    nav2_param_file_launch_arg = DeclareLaunchArgument(
-            name='nav2_param_file',
-            default_value='',
-            description='the file path to the params YAML file. Default is \'\'.'
-    )
-
-    external_urdf_loc_launch_arg = DeclareLaunchArgument(
-            name='external_urdf_loc',
-            default_value=PathJoinSubstitution([FindPackageShare('locobot_control'), 'urdf', 'locobot_tag.urdf.xacro']),
-            description='the file path to the custom URDF file that you would like to include in the Interbotix robot.',
-    )
-    
-    container_arg = DeclareLaunchArgument(
-        name='container',
-        default_value='',
-        description=(
-            'Name of an existing node container to load launched nodes into. '
-            'If unset, a new container will be created.'
-        )
-    )
-
-    rs_camera_param_launch_arg = DeclareLaunchArgument(
-        name='rs_camera_param',
-        default_value=PathJoinSubstitution([FindPackageShare('locobot_control'), 'config', 'rs_camera.yaml']),
-        description='the file path to the Realsense camera configuration file.'
-    )
-
-    # Set navigation controller launch configuration
-    controller_arg = DeclareLaunchArgument(
-        name='nav_controller', default_value='mppi',
-        choices=['mppi', 'rpp'],
-        description='Select the navigation controller to use, default is MPPI. If nav2_param_file param is set, this argument is ignored.'
-    )
-
-    # Set the state machine launch configuration
-    state_machine_arg = DeclareLaunchArgument(
-        name='state_machine', default_value='false',
-        choices=['true', 'false'],
-        description='Select if the state machine should be launched, default is false.'
+        actions=[gesture_recognition_launch,
+                joystick_launch
+        ]
     )
 
     return LaunchDescription([
         external_urdf_loc_launch_arg,
-        nav2_param_file_launch_arg,
         rs_camera_param_launch_arg,
-        container_arg,
+        arg_container,
         controller_arg,
-        state_machine_arg,
-        # Launch main function
-        OpaqueFunction(function=launch_description)
+    # Robot launch
+        ros_control_locobot,
+        state_machine,
+        delayed_items,
+        more_delayed_items
     ])

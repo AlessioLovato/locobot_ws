@@ -14,10 +14,6 @@ void StateMachine::machineError(const std::string &msg) {
 
 void StateMachine::nextState() {
 
-    // Check if Tf of both human and robot are available
-    if (state_ != States::ERROR && !tf_available()) {
-        machineError("TF not available");
-    }
     // Mutex to protect the state machine and read the requested states
     std::unique_lock<std::mutex> lock(request_mutex_);
     bool requestedAbort = requestedAbort_;
@@ -164,8 +160,6 @@ StateMachine::StateMachine (const rclcpp::NodeOptions & options)
     this->declare_parameter("state_topic", "state_machine/state", param_desc);
     param_desc.description = "Publish the internal state of the machine";
     this->declare_parameter("debug", false, param_desc);
-    param_desc.description = "Time tolerance [s] for missing TFs before triggering an error";
-    this->declare_parameter("tf_tolerance", 5.0, param_desc);
 
     // Save parameters
     robot_frame_ = this->get_parameter("robot_tag_frame").as_string();
@@ -194,9 +188,6 @@ StateMachine::StateMachine (const rclcpp::NodeOptions & options)
     }else if (this->get_parameter("state_topic").as_string() == "") {
         RCLCPP_ERROR(this->get_logger(), "State topic was an empty string");
         throw std::invalid_argument("State topic was an empty string");
-    }else if (tf_tolerance_ <= 0) {
-        RCLCPP_ERROR(this->get_logger(), "TF tolerance must be greater than 0");
-        throw std::invalid_argument("TF tolerance must be greater than 0");
     }
 
     // Initialize the tf buffer and listener
@@ -314,32 +305,6 @@ bool StateMachine::clear_error() {
     lock.unlock();
     RCLCPP_INFO(this->get_logger(), "Error cleared. Machine in IDLE state");
     return true;
-}
-
-
-bool StateMachine::checkTf(const std::string &to_frame, const std::string &from_frame) {
-    // Check if the requested TF is available
-    auto now = this->get_clock()->now();
-    try {
-        // Get the time of the last TF
-        auto time{tf_buffer_->lookupTransform(to_frame, from_frame, tf2::TimePointZero).header.stamp};
-
-        // Check if the TF is recent enough
-        if ((now - time).seconds() > tf_tolerance_) {
-            RCLCPP_ERROR(this->get_logger(), "TF from %s to %s is too old", from_frame.c_str(), to_frame.c_str());
-            return false;
-        }
-        return true;
-    } catch (const tf2::TransformException &ex) {
-        RCLCPP_ERROR(this->get_logger(), "TF from %s to %s not available: %s", from_frame.c_str(), to_frame.c_str(), ex.what());
-        return false;
-    }
-
-}
-
-bool StateMachine::tf_available(){
-    // Check if the TF of the human and robot are available
-    return (checkTf(robot_frame_, map_frame_) && checkTf(human_frame_, map_frame_));
 }
 
 double StateMachine::distance_to_human() const {  

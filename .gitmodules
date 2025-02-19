@@ -30,15 +30,3 @@
 	path = src/ecl_lite
 	url = https://github.com/stonier/ecl_lite.git
 	branch = release/1.2.x
-[submodule "src/Azure_Kinect_ROS_Driver"]
-	path = src/Azure_Kinect_ROS_Driver
-	url = https://github.com/mguidolin/Azure_Kinect_ROS_Driver.git
-	branch = fix
-[submodule "src/apriltag_ros"]
-	path = src/apriltag_ros
-	url = https://github.com/Adlink-ROS/apriltag_ros.git
-	branch = foxy-devel
-[submodule "src/apriltag_calibration"]
-	path = src/apriltag_calibration
-	url = https://github.com/mguidolin/apriltag_calibration.git
-	branch = ros2-humble
