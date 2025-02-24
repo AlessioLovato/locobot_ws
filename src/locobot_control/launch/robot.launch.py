@@ -340,12 +340,7 @@ def generate_launch_description():
                     )
             )
 
-    joystick_launch = IncludeLaunchDescription(
-                    PythonLaunchDescriptionSource(
-                        PathJoinSubstitution(
-                            [FindPackageShare('joystick'), 'launch', 'joystick_PS3.launch.py.launch.py']),
-                    )
-            )      
+    
 
 
 
@@ -364,7 +359,7 @@ def generate_launch_description():
     more_delayed_items = TimerAction(
         period=10.0, #Delay in seconds
         actions=[gesture_recognition_launch,
-                joystick_launch
+        state_machine
         ]
     )
 
@@ -374,7 +369,6 @@ def generate_launch_description():
         controller_arg,
     # Robot launch
         ros_control_locobot,
-        state_machine,
         delayed_items,
         more_delayed_items
     ])

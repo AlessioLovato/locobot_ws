@@ -168,7 +168,6 @@ StateMachine::StateMachine (const rclcpp::NodeOptions & options)
     follow_human_ = this->get_parameter("follow_human").as_bool();
     sleep_time_ = this->get_parameter("sleep_time").as_int();
     debug_ = this->get_parameter("debug").as_bool();
-    tf_tolerance_ = this->get_parameter("tf_tolerance").as_double();
 
     if (robot_frame_ == "") {
         RCLCPP_ERROR(this->get_logger(), "Robot frame was an empty string");
