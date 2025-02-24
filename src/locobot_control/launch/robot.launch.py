@@ -43,9 +43,6 @@ The launch file also remaps the cmd_vel topic published from the 'Controller ser
 
 @param robot_name: name of the robot (default: locobot)
 @param base_type: type of the base (default: kobuki)
-@param external_srdf_loc: the file path to the custom semantic description file that you would like to include in the Interbotix robot's semantic description
-@param external_urdf_loc: the file path to the custom URDF file that you would like to include in the Interbotix robot
-@param nav2_params_file: the file path to the params YAML file (default: config/robot_navigation.yaml)
 @param rs_camera_param: the file path to the Realsense camera configuration file (default: config/rs_camera.yaml)
 @param container: name of an existing node container to load launched nodes into. If unset, a new container will be created
 """
@@ -100,12 +97,6 @@ def load_yaml(package_name, file_path):
 
 def generate_launch_description():
 
-    external_urdf_loc_launch_arg = DeclareLaunchArgument(
-            name='external_urdf_loc',
-            default_value=PathJoinSubstitution([FindPackageShare('simulation'), 'urdf', 'locobot_tag.urdf.xacro']),
-            description='the file path to the custom URDF file that you would like to include in the Interbotix robot.',
-    )
-    
     arg_container = DeclareLaunchArgument(
         name='container',
         default_value='',
@@ -117,7 +108,7 @@ def generate_launch_description():
 
     rs_camera_param_launch_arg = DeclareLaunchArgument(
         name='rs_camera_param',
-        default_value=PathJoinSubstitution([FindPackageShare('simulation'), 'config', 'rs_camera.yaml']),
+        default_value=PathJoinSubstitution([FindPackageShare('locobot_control'), 'config', 'rs_camera.yaml']),
         description='the file path to the Realsense camera configuration file.'
     )
 
@@ -305,8 +296,8 @@ def generate_launch_description():
     )
 
     state_machine = Node(
-        package='simulation',
-        executable='state_machine_action_server',
+        package='locobot_control',
+        executable='state_machine',
         output='screen',
        # namespace='locobot',
         # Remapping is mandatory due to the namespace
@@ -378,7 +369,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        external_urdf_loc_launch_arg,
         rs_camera_param_launch_arg,
         arg_container,
         controller_arg,

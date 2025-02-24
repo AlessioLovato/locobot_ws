@@ -45,6 +45,33 @@ if(BUILD_TESTING)
 endif()
 
 
+# State Machine
+add_library( state_machine_component SHARED
+  src/state_machine/StateMachine.cpp src/LocobotControl.cpp)
+
+target_include_directories(state_machine_component PRIVATE 
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+
+target_compile_definitions(state_machine_component PRIVATE "STATE_MACHINE_BUILDING_DLL")
+ament_target_dependencies(state_machine_component  
+                              "rclcpp"
+                              "rclcpp_components"
+                              "geometry_msgs"
+                              "nav2_msgs"
+                              "moveit_core"
+                              "moveit_ros_planning_interface"
+                              "moveit_msgs"
+                              "locobot_control_interfaces")
+
+rclcpp_components_register_node(state_machine_component PLUGIN "StateMachine" EXECUTABLE state_machine)
+
+install(TARGETS state_machine_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
 # Arm sleep position
 add_executable(arm_sleep_position src/ArmSleepPosition.cpp)
 ament_target_dependencies(arm_sleep_position rclcpp
@@ -60,6 +87,7 @@ target_include_directories(arm_sleep_position PUBLIC include)
 # install targets
 install(TARGETS
   arm_sleep_position
+  state_machine
   DESTINATION lib/${PROJECT_NAME})
 
 # install directories
